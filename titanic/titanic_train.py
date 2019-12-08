@@ -8,7 +8,6 @@ def script_path(filename):
     A convenience function to get the absolute path to a file in this
     tutorial's directory. This allows the tutorial to be launched from any
     directory.
-
     """
     import os
 
@@ -53,8 +52,10 @@ class TitanicModeling(FlowSpec):
         from sklearn.impute import SimpleImputer
         from sklearn.preprocessing import OneHotEncoder
    
-        self.cat_imputer = SimpleImputer(strategy='constant', fill_value='missing')
-        self.ohe = OneHotEncoder(handle_unknown='ignore', sparse=False)
+        self.cat_imputer = SimpleImputer(strategy='constant',
+                                         fill_value='missing')
+        self.ohe = OneHotEncoder(handle_unknown='ignore',
+                                 sparse=False)
         
         X_imp = self.cat_imputer.fit_transform(self.X[self.categorical_columns])
         X_ohe = self.ohe.fit_transform(X_imp)
@@ -84,7 +85,9 @@ class TitanicModeling(FlowSpec):
     
     @step
     def join(self, inputs):
-        
+        '''
+        Concatinate the categorical and numerical columns.
+        '''
         X_cat = inputs.categorical_prep.X_cat
         X_num = inputs.numerical_prep.X_num
         self.merge_artifacts(inputs)
@@ -96,8 +99,7 @@ class TitanicModeling(FlowSpec):
     @step
     def model_construction(self):
         """
-        Select the top performing movies from the use specified genre.
-
+        Construct a Random Forest model.
         """
         from sklearn.ensemble import RandomForestClassifier
 
@@ -109,10 +111,8 @@ class TitanicModeling(FlowSpec):
     @step
     def end(self):
         """
-        Print out the playlist and bonus movie.
-
+        Print out the train socre.
         """
-        
         print("RF train accuracy: %0.3f" % self.rf.score(self.X_prep, self.y))
 
 

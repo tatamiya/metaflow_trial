@@ -1,6 +1,6 @@
 import pandas as pd
 
-from metaflow import FlowSpec, step, IncludeFile, Flow
+from metaflow import FlowSpec, step, IncludeFile, Flow, Run, Parameter
 
 
 def script_path(filename):
@@ -8,7 +8,6 @@ def script_path(filename):
     A convenience function to get the absolute path to a file in this
     tutorial's directory. This allows the tutorial to be launched from any
     directory.
-
     """
     import os
 
@@ -18,15 +17,17 @@ def script_path(filename):
 
 class TitanicPredict(FlowSpec):
     """
-    Construct a ML model from the Titanic data set.
-    - preprocess
-    - modeling
+    Prediction of the test data set.
+    The model is taken from the latest successful run
+    or the designated run_id.
     """
+
+    run_id = Parameter('id',
+                       help="Run execution ID",
+                       default='latest_successful')
     test_data = IncludeFile("test_data",
                             help="The path to Titanic test data file.",
                             default=script_path('test.csv'))
-    
-    train_run = Flow('TitanicModeling').latest_successful_run
 
     @step
     def start(self):
@@ -35,8 +36,14 @@ class TitanicPredict(FlowSpec):
         """
         from io import StringIO
 
-        # Load the data set into a pandas dataaframe.
+        # Load the data set into a pandas dataframe.
         self.X = pd.read_csv(StringIO(self.test_data))
+
+        print('run id: ', self.run_id)
+        if self.run_id == 'latest_successful':
+            self.train_run = Flow('TitanicModeling').latest_successful_run
+        else:
+            self.train_run = Run(f'TitanicModeling/{self.run_id}')
 
         # Compute our two recomendation types in parallel.
         self.next(self.categorical_prep, self.numerical_prep)
@@ -79,9 +86,13 @@ class TitanicPredict(FlowSpec):
     
     @step
     def join(self, inputs):
+        '''
+        Concatinate the categorical and numerical columns.
+        '''
         
         X_cat = inputs.categorical_prep.X_cat
         X_num = inputs.numerical_prep.X_num
+        self.train_run = inputs.categorical_prep.train_run
         self.merge_artifacts(inputs)
         
         self.X_prep = pd.concat([X_cat, X_num], axis=1)
@@ -91,8 +102,8 @@ class TitanicPredict(FlowSpec):
     @step
     def prediction(self):
         """
-        Select the top performing movies from the use specified genre.
-
+        Predict suvived / not survived
+        from the test data set.
         """
 
         rf = self.train_run.data.rf
@@ -103,9 +114,12 @@ class TitanicPredict(FlowSpec):
     @step
     def end(self):
         """
-        Nothing to do
+        Save the result.
         """
-        pass
+        df_result = self.X.copy()
+        df_result['y_pred'] = self.y_pred
+
+        df_result.to_csv('result.csv', index=None)
 
 
 if __name__ == '__main__':
