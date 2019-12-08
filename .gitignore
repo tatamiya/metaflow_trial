@@ -132,3 +132,5 @@ dmypy.json
 .vscode/
 .metaflow/
 metaflow-tutorials/
+*.csv
+*.zip
