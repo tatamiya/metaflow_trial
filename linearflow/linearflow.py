@@ -1,5 +1,9 @@
 from metaflow import FlowSpec, step
 
+'''
+Copied from https://docs.metaflow.org/metaflow/basics
+'''
+
 
 class LinearFlow(FlowSpec):
 
